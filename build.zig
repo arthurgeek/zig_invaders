@@ -29,6 +29,14 @@ pub fn build(b: *std.Build) void {
     const raylib = raylib_dep.module("raylib");
     const raylib_artifact = raylib_dep.artifact("raylib");
 
+    const zflecs_dep = b.dependency("zflecs", .{
+        .target = target,
+        .optimize = optimize,
+    });
+
+    const zflecs = zflecs_dep.module("root");
+    const zflecs_artifact = zflecs_dep.artifact("flecs");
+
     if (b.graph.environ_map.get("SDKROOT")) |sdk_root| {
         const frameworks_path = b.pathJoin(&.{ sdk_root, "System/Library/Frameworks" });
         raylib.addFrameworkPath(.{ .cwd_relative = frameworks_path });
@@ -93,11 +101,13 @@ pub fn build(b: *std.Build) void {
                 // importing modules from different packages).
                 .{ .name = "zig_invaders", .module = mod },
                 .{ .name = "raylib", .module = raylib },
+                .{ .name = "zflecs", .module = zflecs },
             },
         }),
     });
 
     exe.root_module.linkLibrary(raylib_artifact);
+    exe.root_module.linkLibrary(zflecs_artifact);
 
     // This declares intent for the executable to be installed into the
     // install prefix when running `zig build` (i.e. when executing the default

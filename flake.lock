@@ -112,11 +112,11 @@
         "systems": "systems_2"
       },
       "locked": {
-        "lastModified": 1775391648,
-        "narHash": "sha256-l5gmgGuVNXcLIYFLNjWdOCFUr15xjj5ZFg36oENuDPA=",
+        "lastModified": 1775436817,
+        "narHash": "sha256-SeIqAqjDITyLbR40j2MxyK6ys479pkKU2qZ/cWbhHgE=",
         "owner": "mitchellh",
         "repo": "zig-overlay",
-        "rev": "7675e209928ad497848e17224b0e61d79638a820",
+        "rev": "a71b99c2ff032a7e94a5546b5944f0343d92cf08",
         "type": "github"
       },
       "original": {
