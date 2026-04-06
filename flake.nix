@@ -25,6 +25,9 @@
             zig
             zls.packages.${system}.default
           ];
+          shellHook = ''
+            export SDKROOT=$(xcrun --sdk macosx --show-sdk-path 2>/dev/null || echo "")
+          '';
         };
       }
     );

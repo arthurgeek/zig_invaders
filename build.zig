@@ -21,6 +21,19 @@ pub fn build(b: *std.Build) void {
     // target and optimize options) will be listed when running `zig build --help`
     // in this directory.
 
+    const raylib_dep = b.dependency("raylib_zig", .{
+        .target = target,
+        .optimize = optimize,
+    });
+
+    const raylib = raylib_dep.module("raylib");
+    const raylib_artifact = raylib_dep.artifact("raylib");
+
+    if (b.graph.environ_map.get("SDKROOT")) |sdk_root| {
+        const frameworks_path = b.pathJoin(&.{ sdk_root, "System/Library/Frameworks" });
+        raylib.addFrameworkPath(.{ .cwd_relative = frameworks_path });
+    }
+
     // This creates a module, which represents a collection of source files alongside
     // some compilation options, such as optimization mode and linked system libraries.
     // Zig modules are the preferred way of making Zig code available to consumers.
@@ -83,6 +96,8 @@ pub fn build(b: *std.Build) void {
             },
         }),
     });
+
+    exe.root_module.linkLibrary(raylib_artifact);
 
     // This declares intent for the executable to be installed into the
     // install prefix when running `zig build` (i.e. when executing the default
