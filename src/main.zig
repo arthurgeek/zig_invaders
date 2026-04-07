@@ -43,6 +43,12 @@ const Size = struct { width: f32, height: f32 };
 const Speed = struct { speed: f32 };
 const Player = struct {};
 const Bullet = struct {};
+const Invader = struct {};
+const InvaderTimer = struct {
+    elapsed: f32,
+    interval: f32,
+    direction: f32,
+};
 
 fn draw_title_system(it: *ecs.iter_t) void {
     _ = it;
@@ -165,6 +171,114 @@ fn draw_bullets_system(
     }
 }
 
+fn init_invaders_system(it: *ecs.iter_t) void {
+    const invader_width = 40.0;
+    const invader_height = 30.0;
+    const invader_rows = 5;
+    const invader_cols = 11;
+    const invader_start_x = 100.0;
+    const invader_start_y = 50.0;
+    const invader_spacing_x = 60.0;
+    const invader_spacing_y = 40.0;
+
+    for (0..(invader_rows)) |row| {
+        for (0..invader_cols) |col| {
+            const invader = ecs.new_id(it.world);
+
+            _ = ecs.set(it.world, invader, Position, .{
+                .x = invader_start_x + @as(
+                    f32,
+                    @floatFromInt(col),
+                ) * invader_spacing_x,
+                .y = invader_start_y + @as(
+                    f32,
+                    @floatFromInt(row),
+                ) * invader_spacing_y,
+            });
+            _ = ecs.set(
+                it.world,
+                invader,
+                Size,
+                .{ .width = invader_width, .height = invader_height },
+            );
+            _ = ecs.set(
+                it.world,
+                invader,
+                Speed,
+                .{ .speed = 8.0 },
+            );
+            ecs.add(it.world, invader, Invader);
+        }
+    }
+}
+
+fn init_invaders_timer(it: *ecs.iter_t) void {
+    _ = ecs.set(
+        it.world,
+        ecs.id(InvaderTimer),
+        InvaderTimer,
+        .{ .elapsed = 0.0, .interval = 0.5, .direction = 1.0 },
+    );
+}
+
+fn draw_invaders_system(
+    positions: []Position,
+    sizes: []const Size,
+) void {
+    for (positions, sizes) |*pos, size| {
+        rl.drawRectangle(
+            @intFromFloat(pos.x),
+            @intFromFloat(pos.y),
+            @intFromFloat(size.width),
+            @intFromFloat(size.height),
+            rl.Color.green,
+        );
+    }
+}
+
+fn move_invaders_system(
+    it: *ecs.iter_t,
+    positions: []Position,
+    sizes: []const Size,
+    speeds: []const Speed,
+) void {
+    const invaders_drop_distance = 20.0;
+
+    const timer = ecs.get_mut(
+        it.world,
+        ecs.id(InvaderTimer),
+        InvaderTimer,
+    ).?;
+
+    timer.elapsed += it.delta_time;
+
+    if (timer.elapsed >= timer.interval) {
+        timer.elapsed = 0;
+
+        const screen_width = @as(f32, @floatFromInt(rl.getScreenWidth()));
+        const next_x = speeds[0].speed * timer.direction;
+
+        var hit_edge = false;
+        for (positions, sizes) |pos, size| {
+            if (pos.x + next_x < 0 or pos.x + size.width + next_x > screen_width) {
+                hit_edge = true;
+                break;
+            }
+        }
+
+        if (hit_edge) {
+            for (positions) |*pos| {
+                pos.y += invaders_drop_distance;
+            }
+            timer.direction *= -1.0;
+        } else {
+            for (positions) |*pos| {
+                pos.x += next_x;
+            }
+        }
+    }
+}
+
 pub fn main() void {
     const screenWidth = 800;
     const screenHeight = 600;
@@ -189,15 +303,29 @@ pub fn main() void {
     ecs.COMPONENT(world, Position);
     ecs.COMPONENT(world, Size);
     ecs.COMPONENT(world, Speed);
+    ecs.COMPONENT(world, InvaderTimer);
 
     ecs.TAG(world, Player);
     ecs.TAG(world, Bullet);
+    ecs.TAG(world, Invader);
 
     _ = ecs.ADD_SYSTEM(
         world,
         "init player",
         ecs.OnStart,
         init_player_system,
+    );
+    _ = ecs.ADD_SYSTEM(
+        world,
+        "init invaders",
+        ecs.OnStart,
+        init_invaders_system,
+    );
+    _ = ecs.ADD_SYSTEM(
+        world,
+        "init invaders timer",
+        ecs.OnStart,
+        init_invaders_timer,
     );
     _ = ecs.ADD_SYSTEM(
         world,
@@ -222,6 +350,15 @@ pub fn main() void {
     );
     _ = ecs.ADD_SYSTEM_WITH_FILTERS(
         world,
+        "draw invaders",
+        ecs.OnUpdate,
+        draw_invaders_system,
+        &.{
+            .{ .id = ecs.id(Invader) },
+        },
+    );
+    _ = ecs.ADD_SYSTEM_WITH_FILTERS(
+        world,
         "move player",
         ecs.OnUpdate,
         move_player_system,
@@ -236,6 +373,15 @@ pub fn main() void {
         draw_player_system,
         &.{
             .{ .id = ecs.id(Player) },
+        },
+    );
+    _ = ecs.ADD_SYSTEM_WITH_FILTERS(
+        world,
+        "move invaders",
+        ecs.OnUpdate,
+        move_invaders_system,
+        &.{
+            .{ .id = ecs.id(Invader) },
         },
     );
 
