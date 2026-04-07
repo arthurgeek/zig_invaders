@@ -42,6 +42,7 @@ const Position = struct { x: f32, y: f32 };
 const Size = struct { width: f32, height: f32 };
 const Speed = struct { speed: f32 };
 const Player = struct {};
+const Bullet = struct {};
 
 fn draw_title_system(it: *ecs.iter_t) void {
     _ = it;
@@ -100,6 +101,70 @@ fn draw_player_system(positions: []const Position, sizes: []const Size) void {
     }
 }
 
+fn shoot_bullet_system(it: *ecs.iter_t) void {
+    const bulletWidth = 4.0;
+    const bulletHeight = 10.0;
+
+    var player_it = ecs.each(it.world, Player);
+    while (ecs.each_next(&player_it)) {
+        for (player_it.entities()) |player_entity| {
+            const player_pos = ecs.get(it.world, player_entity, Position).?;
+            const player_size = ecs.get(it.world, player_entity, Size).?;
+
+            if (rl.isKeyPressed(rl.KeyboardKey.space)) {
+                const bullet = ecs.new_id(it.world);
+
+                _ = ecs.set(
+                    it.world,
+                    bullet,
+                    Position,
+                    .{
+                        .x = player_pos.x + player_size.width / 2 - bulletWidth / 2,
+                        .y = player_pos.y,
+                    },
+                );
+                _ = ecs.set(
+                    it.world,
+                    bullet,
+                    Size,
+                    .{ .width = bulletWidth, .height = bulletHeight },
+                );
+                _ = ecs.set(
+                    it.world,
+                    bullet,
+                    Speed,
+                    .{ .speed = 10.0 },
+                );
+
+                ecs.add(it.world, bullet, Bullet);
+            }
+        }
+    }
+}
+
+fn draw_bullets_system(
+    it: *ecs.iter_t,
+    positions: []Position,
+    sizes: []const Size,
+    speeds: []const Speed,
+) void {
+    for (it.entities(), positions, sizes, speeds) |bullet, *pos, size, spd| {
+        pos.y -= spd.speed;
+
+        if (pos.y < 0) {
+            ecs.delete(it.world, bullet);
+        }
+
+        rl.drawRectangle(
+            @intFromFloat(pos.x),
+            @intFromFloat(pos.y),
+            @intFromFloat(size.width),
+            @intFromFloat(size.height),
+            rl.Color.red,
+        );
+    }
+}
+
 pub fn main() void {
     const screenWidth = 800;
     const screenHeight = 600;
@@ -126,12 +191,34 @@ pub fn main() void {
     ecs.COMPONENT(world, Speed);
 
     ecs.TAG(world, Player);
+    ecs.TAG(world, Bullet);
 
     _ = ecs.ADD_SYSTEM(
         world,
         "init player",
         ecs.OnStart,
         init_player_system,
+    );
+    _ = ecs.ADD_SYSTEM(
+        world,
+        "draw title",
+        ecs.OnUpdate,
+        draw_title_system,
+    );
+    _ = ecs.ADD_SYSTEM(
+        world,
+        "shoot bullets",
+        ecs.OnUpdate,
+        shoot_bullet_system,
+    );
+    _ = ecs.ADD_SYSTEM_WITH_FILTERS(
+        world,
+        "draw bullets",
+        ecs.OnUpdate,
+        draw_bullets_system,
+        &.{
+            .{ .id = ecs.id(Bullet) },
+        },
     );
     _ = ecs.ADD_SYSTEM_WITH_FILTERS(
         world,
