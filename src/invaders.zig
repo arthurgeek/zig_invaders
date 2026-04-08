@@ -14,7 +14,7 @@ pub const InvaderTimer = struct {
     shoot_chance: u32,
 };
 
-fn init_invaders_system(it: *ecs.iter_t) void {
+pub fn spawn(world: *ecs.world_t) void {
     const invader_width = 40.0;
     const invader_height = 30.0;
     const invader_rows = 5;
@@ -26,18 +26,18 @@ fn init_invaders_system(it: *ecs.iter_t) void {
 
     for (0..invader_rows) |row| {
         for (0..invader_cols) |col| {
-            const invader = ecs.new_id(it.world);
-            _ = ecs.set(it.world, invader, shared.Position, .{
+            const invader = ecs.new_id(world);
+            _ = ecs.set(world, invader, shared.Position, .{
                 .x = invader_start_x + @as(f32, @floatFromInt(col)) * invader_spacing_x,
                 .y = invader_start_y + @as(f32, @floatFromInt(row)) * invader_spacing_y,
             });
-            _ = ecs.set(it.world, invader, shared.Size, .{ .width = invader_width, .height = invader_height });
-            _ = ecs.set(it.world, invader, shared.Color, .{ .color = rl.Color.green });
-            ecs.add(it.world, invader, Invader);
+            _ = ecs.set(world, invader, shared.Size, .{ .width = invader_width, .height = invader_height });
+            _ = ecs.set(world, invader, shared.Color, .{ .color = rl.Color.green });
+            ecs.add(world, invader, Invader);
         }
     }
 
-    _ = ecs.set(it.world, ecs.id(InvaderTimer), InvaderTimer, .{
+    _ = ecs.set(world, ecs.id(InvaderTimer), InvaderTimer, .{
         .elapsed = 0.0,
         .interval = 0.5,
         .direction = 1.0,
@@ -46,6 +46,10 @@ fn init_invaders_system(it: *ecs.iter_t) void {
         .shoot_interval = 1.0,
         .shoot_chance = 5,
     });
+}
+
+fn init_invaders_system(it: *ecs.iter_t) void {
+    spawn(it.world);
 }
 
 fn move_invaders_system(

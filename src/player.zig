@@ -4,21 +4,25 @@ const shared = @import("shared.zig");
 
 pub const Player = struct {};
 
-fn init_player_system(it: *ecs.iter_t) void {
+pub fn spawn(world: *ecs.world_t) void {
     const screen_width = @as(f32, @floatFromInt(rl.getScreenWidth()));
     const screen_height = @as(f32, @floatFromInt(rl.getScreenHeight()));
     const player_width = 50.0;
     const player_height = 30.0;
 
-    const player = ecs.new_entity(it.world, "Player");
-    _ = ecs.set(it.world, player, shared.Size, .{ .width = player_width, .height = player_height });
-    _ = ecs.set(it.world, player, shared.Position, .{
+    const player = ecs.new_id(world);
+    _ = ecs.set(world, player, shared.Size, .{ .width = player_width, .height = player_height });
+    _ = ecs.set(world, player, shared.Position, .{
         .x = screen_width / 2 - player_width / 2,
         .y = screen_height - 60.0,
     });
-    _ = ecs.set(it.world, player, shared.Speed, .{ .speed = 5.0 });
-    _ = ecs.set(it.world, player, shared.Color, .{ .color = rl.Color.blue });
-    ecs.add(it.world, player, Player);
+    _ = ecs.set(world, player, shared.Speed, .{ .speed = 5.0 });
+    _ = ecs.set(world, player, shared.Color, .{ .color = rl.Color.blue });
+    ecs.add(world, player, Player);
+}
+
+fn init_player_system(it: *ecs.iter_t) void {
+    spawn(it.world);
 }
 
 fn move_player_system(positions: []shared.Position, speeds: []const shared.Speed, sizes: []const shared.Size) void {
