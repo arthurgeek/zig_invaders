@@ -46,5 +46,6 @@ pub fn init(world: *ecs.world_t) void {
     _ = ecs.ADD_SYSTEM(world, "init player", ecs.OnStart, init_player_system);
     _ = ecs.ADD_SYSTEM_WITH_FILTERS(world, "move player", ecs.OnUpdate, move_player_system, &.{
         .{ .id = ecs.id(Player) },
+        shared.no_game_over_term(),
     });
 }

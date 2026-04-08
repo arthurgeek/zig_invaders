@@ -1,6 +1,7 @@
 const rl = @import("raylib");
 const ecs = @import("zflecs");
 const shared = @import("shared.zig");
+const bullets = @import("bullets.zig");
 
 pub const Invader = struct {};
 pub const InvaderTimer = struct {
@@ -8,6 +9,9 @@ pub const InvaderTimer = struct {
     interval: f32,
     direction: f32,
     speed: f32,
+    shoot_elapsed: f32,
+    shoot_interval: f32,
+    shoot_chance: u32,
 };
 
 fn init_invaders_system(it: *ecs.iter_t) void {
@@ -38,6 +42,9 @@ fn init_invaders_system(it: *ecs.iter_t) void {
         .interval = 0.5,
         .direction = 1.0,
         .speed = 8.0,
+        .shoot_elapsed = 0.0,
+        .shoot_interval = 1.0,
+        .shoot_chance = 5,
     });
 }
 
@@ -79,6 +86,35 @@ fn move_invaders_system(
     }
 }
 
+fn shoot_invader_bullets_system(
+    it: *ecs.iter_t,
+    positions: []const shared.Position,
+    sizes: []const shared.Size,
+) void {
+    const timer = ecs.get_mut(it.world, ecs.id(InvaderTimer), InvaderTimer).?;
+    timer.shoot_elapsed += it.delta_time;
+
+    if (timer.shoot_elapsed >= timer.shoot_interval) {
+        timer.shoot_elapsed = 0;
+
+        for (positions, sizes) |pos, size| {
+            if (rl.getRandomValue(0, 100) < timer.shoot_chance) {
+                const bullet = ecs.new_id(it.world);
+                _ = ecs.set(it.world, bullet, shared.Position, .{
+                    .x = pos.x + size.width / 2 - bullets.bullet_width / 2,
+                    .y = pos.y + size.height,
+                });
+                _ = ecs.set(it.world, bullet, shared.Size, .{ .width = bullets.bullet_width, .height = bullets.bullet_height });
+                _ = ecs.set(it.world, bullet, shared.Speed, .{ .speed = 5.0 });
+                _ = ecs.set(it.world, bullet, shared.Direction, .{ .value = 1.0 });
+                _ = ecs.set(it.world, bullet, shared.Color, .{ .color = rl.Color.yellow });
+                ecs.add(it.world, bullet, bullets.Bullet);
+                ecs.add(it.world, bullet, bullets.InvaderBullet);
+            }
+        }
+    }
+}
+
 pub fn init(world: *ecs.world_t) void {
     ecs.COMPONENT(world, InvaderTimer);
     ecs.TAG(world, Invader);
@@ -86,5 +122,10 @@ pub fn init(world: *ecs.world_t) void {
     _ = ecs.ADD_SYSTEM(world, "init invaders", ecs.OnStart, init_invaders_system);
     _ = ecs.ADD_SYSTEM_WITH_FILTERS(world, "move invaders", ecs.OnUpdate, move_invaders_system, &.{
         .{ .id = ecs.id(Invader) },
+        shared.no_game_over_term(),
+    });
+    _ = ecs.ADD_SYSTEM_WITH_FILTERS(world, "shoot invader bullets", ecs.OnUpdate, shoot_invader_bullets_system, &.{
+        .{ .id = ecs.id(Invader) },
+        shared.no_game_over_term(),
     });
 }

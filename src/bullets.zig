@@ -4,11 +4,12 @@ const shared = @import("shared.zig");
 const player = @import("player.zig");
 
 pub const Bullet = struct {};
+pub const InvaderBullet = struct {};
+
+pub const bullet_width = 4.0;
+pub const bullet_height = 10.0;
 
 fn shoot_bullet_system(it: *ecs.iter_t) void {
-    const bullet_width = 4.0;
-    const bullet_height = 10.0;
-
     var player_it = ecs.each(it.world, player.Player);
     while (ecs.each_next(&player_it)) {
         for (player_it.entities()) |player_entity| {
@@ -24,6 +25,8 @@ fn shoot_bullet_system(it: *ecs.iter_t) void {
                 });
                 _ = ecs.set(it.world, bullet, shared.Size, .{ .width = bullet_width, .height = bullet_height });
                 _ = ecs.set(it.world, bullet, shared.Speed, .{ .speed = 10.0 });
+                _ = ecs.set(it.world, bullet, shared.Direction, .{ .value = -1.0 });
+                _ = ecs.set(it.world, bullet, shared.Color, .{ .color = rl.Color.red });
                 ecs.add(it.world, bullet, Bullet);
             }
         }
@@ -33,31 +36,28 @@ fn shoot_bullet_system(it: *ecs.iter_t) void {
 fn move_bullets_system(
     it: *ecs.iter_t,
     positions: []shared.Position,
-    sizes: []const shared.Size,
     speeds: []const shared.Speed,
+    directions: []const shared.Direction,
 ) void {
-    for (it.entities(), positions, sizes, speeds) |bullet, *pos, size, spd| {
-        pos.y -= spd.speed;
+    const screen_height = @as(f32, @floatFromInt(rl.getScreenHeight()));
+    for (it.entities(), positions, speeds, directions) |bullet, *pos, spd, dir| {
+        pos.y += spd.speed * dir.value;
 
-        if (pos.y < 0) {
+        if (pos.y < 0 or pos.y > screen_height) {
             ecs.delete(it.world, bullet);
         }
-
-        rl.drawRectangle(
-            @intFromFloat(pos.x),
-            @intFromFloat(pos.y),
-            @intFromFloat(size.width),
-            @intFromFloat(size.height),
-            rl.Color.red,
-        );
     }
 }
 
 pub fn init(world: *ecs.world_t) void {
     ecs.TAG(world, Bullet);
+    ecs.TAG(world, InvaderBullet);
 
-    _ = ecs.ADD_SYSTEM(world, "shoot bullets", ecs.OnUpdate, shoot_bullet_system);
+    _ = ecs.ADD_SYSTEM_WITH_FILTERS(world, "shoot bullets", ecs.OnUpdate, shoot_bullet_system, &.{
+        shared.no_game_over_term(),
+    });
     _ = ecs.ADD_SYSTEM_WITH_FILTERS(world, "move bullets", ecs.OnUpdate, move_bullets_system, &.{
         .{ .id = ecs.id(Bullet) },
+        shared.no_game_over_term(),
     });
 }

@@ -35,8 +35,41 @@ fn draw_rect_system(positions: []const shared.Position, sizes: []const shared.Si
     }
 }
 
+fn draw_game_over_system(it: *ecs.iter_t) void {
+    const score = ecs.get(it.world, ecs.id(shared.Score), shared.Score).?;
+
+    rl.drawText("GAME OVER", 270, 250, 40, rl.Color.red);
+    rl.drawText(rl.textFormat("Final Score: %d", .{score.value}), 285, 310, 30, rl.Color.white);
+    rl.drawText("Press ENTER to play again or ESC to quit", 180, 360, 20, rl.Color.green);
+}
+
 pub fn init(world: *ecs.world_t) void {
-    _ = ecs.ADD_SYSTEM(world, "draw title", ecs.OnUpdate, draw_title_system);
-    _ = ecs.ADD_SYSTEM(world, "draw rects", ecs.OnUpdate, draw_rect_system);
-    _ = ecs.ADD_SYSTEM(world, "draw score", ecs.OnUpdate, draw_score_system);
+    _ = ecs.ADD_SYSTEM_WITH_FILTERS(
+        world,
+        "draw title",
+        ecs.OnUpdate,
+        draw_title_system,
+        &.{shared.no_game_over_term()},
+    );
+    _ = ecs.ADD_SYSTEM_WITH_FILTERS(
+        world,
+        "draw rects",
+        ecs.OnUpdate,
+        draw_rect_system,
+        &.{shared.no_game_over_term()},
+    );
+    _ = ecs.ADD_SYSTEM_WITH_FILTERS(
+        world,
+        "draw score",
+        ecs.OnUpdate,
+        draw_score_system,
+        &.{shared.no_game_over_term()},
+    );
+    _ = ecs.ADD_SYSTEM_WITH_FILTERS(
+        world,
+        "draw game over",
+        ecs.OnUpdate,
+        draw_game_over_system,
+        &.{shared.game_over_term()},
+    );
 }

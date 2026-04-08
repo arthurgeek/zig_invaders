@@ -43,14 +43,28 @@ pub const GameConfig = struct {
 pub const Position = struct { x: f32, y: f32 };
 pub const Size = struct { width: f32, height: f32 };
 pub const Speed = struct { speed: f32 };
+pub const Direction = struct { value: f32 };
 pub const Color = struct { color: rl.Color };
 pub const Score = struct { value: u32 };
+pub const GameOver = struct {};
+
+pub fn game_over_term() ecs.term_t {
+    const id = ecs.id(GameOver);
+    return .{ .id = id, .src = .{ .id = id } };
+}
+
+pub fn no_game_over_term() ecs.term_t {
+    const id = ecs.id(GameOver);
+    return .{ .id = id, .src = .{ .id = id }, .oper = .Not };
+}
 
 pub fn init(world: *ecs.world_t) void {
     ecs.COMPONENT(world, Position);
     ecs.COMPONENT(world, Size);
     ecs.COMPONENT(world, Speed);
+    ecs.COMPONENT(world, Direction);
     ecs.COMPONENT(world, Color);
     ecs.COMPONENT(world, Score);
     _ = ecs.set(world, ecs.id(Score), Score, .{ .value = 0 });
+    ecs.TAG(world, GameOver);
 }
