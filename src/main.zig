@@ -49,6 +49,7 @@ const InvaderTimer = struct {
     elapsed: f32,
     interval: f32,
     direction: f32,
+    speed: f32,
 };
 
 fn draw_title_system(it: *ecs.iter_t) void {
@@ -203,12 +204,6 @@ fn init_invaders_system(it: *ecs.iter_t) void {
                 Size,
                 .{ .width = invader_width, .height = invader_height },
             );
-            _ = ecs.set(
-                it.world,
-                invader,
-                Speed,
-                .{ .speed = 8.0 },
-            );
             _ = ecs.set(it.world, invader, Color, .{ .color = rl.Color.green });
             ecs.add(it.world, invader, Invader);
         }
@@ -220,7 +215,7 @@ fn init_invaders_timer(it: *ecs.iter_t) void {
         it.world,
         ecs.id(InvaderTimer),
         InvaderTimer,
-        .{ .elapsed = 0.0, .interval = 0.5, .direction = 1.0 },
+        .{ .elapsed = 0.0, .interval = 0.5, .direction = 1.0, .speed = 8.0 },
     );
 }
 
@@ -228,7 +223,6 @@ fn move_invaders_system(
     it: *ecs.iter_t,
     positions: []Position,
     sizes: []const Size,
-    speeds: []const Speed,
 ) void {
     const invaders_drop_distance = 20.0;
 
@@ -244,7 +238,7 @@ fn move_invaders_system(
         timer.elapsed = 0;
 
         const screen_width = @as(f32, @floatFromInt(rl.getScreenWidth()));
-        const next_x = speeds[0].speed * timer.direction;
+        const next_x = timer.speed * timer.direction;
 
         var hit_edge = false;
         for (positions, sizes) |pos, size| {
