@@ -6,6 +6,7 @@ const player = @import("player.zig");
 const invaders = @import("invaders.zig");
 const bullets = @import("bullets.zig");
 const render = @import("render.zig");
+const collision = @import("collision.zig");
 
 pub fn main() void {
     const screenWidth = 800;
@@ -27,6 +28,7 @@ pub fn main() void {
     invaders.init(world);
     bullets.init(world);
     render.init(world);
+    collision.init(world);
 
     rl.setTargetFPS(60);
 
