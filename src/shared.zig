@@ -44,10 +44,13 @@ pub const Position = struct { x: f32, y: f32 };
 pub const Size = struct { width: f32, height: f32 };
 pub const Speed = struct { speed: f32 };
 pub const Color = struct { color: rl.Color };
+pub const Score = struct { value: u32 };
 
 pub fn init(world: *ecs.world_t) void {
     ecs.COMPONENT(world, Position);
     ecs.COMPONENT(world, Size);
     ecs.COMPONENT(world, Speed);
     ecs.COMPONENT(world, Color);
+    ecs.COMPONENT(world, Score);
+    _ = ecs.set(world, ecs.id(Score), Score, .{ .value = 0 });
 }

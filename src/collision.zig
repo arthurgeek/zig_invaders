@@ -18,6 +18,8 @@ fn bullet_invader_collision_system(
                 const i_size = ecs.get(it.world, invader, shared.Size).?;
 
                 if (b_rect.intersects(shared.Rectangle.from(i_pos.*, i_size.*))) {
+                    const score = ecs.get_mut(it.world, ecs.id(shared.Score), shared.Score).?;
+                    score.value += 10;
                     ecs.delete(it.world, bullet);
                     ecs.delete(it.world, invader);
                     break;
