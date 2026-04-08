@@ -41,6 +41,7 @@ const GameConfig = struct {
 const Position = struct { x: f32, y: f32 };
 const Size = struct { width: f32, height: f32 };
 const Speed = struct { speed: f32 };
+const Color = struct { color: rl.Color };
 const Player = struct {};
 const Bullet = struct {};
 const Invader = struct {};
@@ -73,6 +74,7 @@ fn init_player_system(it: *ecs.iter_t) void {
         .y = screen_height - 60.0,
     });
     _ = ecs.set(it.world, player, Speed, .{ .speed = 5.0 });
+    _ = ecs.set(it.world, player, Color, .{ .color = rl.Color.blue });
     ecs.add(it.world, player, Player);
 }
 
@@ -95,14 +97,14 @@ fn move_player_system(positions: []Position, speeds: []const Speed, sizes: []con
     }
 }
 
-fn draw_player_system(positions: []const Position, sizes: []const Size) void {
-    for (positions, sizes) |pos, siz| {
+fn draw_rect_system(positions: []const Position, sizes: []const Size, colors: []const Color) void {
+    for (positions, sizes, colors) |pos, siz, col| {
         rl.drawRectangle(
             @intFromFloat(pos.x),
             @intFromFloat(pos.y),
             @intFromFloat(siz.width),
             @intFromFloat(siz.height),
-            rl.Color.blue,
+            col.color,
         );
     }
 }
@@ -207,6 +209,7 @@ fn init_invaders_system(it: *ecs.iter_t) void {
                 Speed,
                 .{ .speed = 8.0 },
             );
+            _ = ecs.set(it.world, invader, Color, .{ .color = rl.Color.green });
             ecs.add(it.world, invader, Invader);
         }
     }
@@ -219,21 +222,6 @@ fn init_invaders_timer(it: *ecs.iter_t) void {
         InvaderTimer,
         .{ .elapsed = 0.0, .interval = 0.5, .direction = 1.0 },
     );
-}
-
-fn draw_invaders_system(
-    positions: []Position,
-    sizes: []const Size,
-) void {
-    for (positions, sizes) |*pos, size| {
-        rl.drawRectangle(
-            @intFromFloat(pos.x),
-            @intFromFloat(pos.y),
-            @intFromFloat(size.width),
-            @intFromFloat(size.height),
-            rl.Color.green,
-        );
-    }
 }
 
 fn move_invaders_system(
@@ -303,6 +291,7 @@ pub fn main() void {
     ecs.COMPONENT(world, Position);
     ecs.COMPONENT(world, Size);
     ecs.COMPONENT(world, Speed);
+    ecs.COMPONENT(world, Color);
     ecs.COMPONENT(world, InvaderTimer);
 
     ecs.TAG(world, Player);
@@ -348,29 +337,17 @@ pub fn main() void {
             .{ .id = ecs.id(Bullet) },
         },
     );
-    _ = ecs.ADD_SYSTEM_WITH_FILTERS(
+    _ = ecs.ADD_SYSTEM(
         world,
-        "draw invaders",
+        "draw rects",
         ecs.OnUpdate,
-        draw_invaders_system,
-        &.{
-            .{ .id = ecs.id(Invader) },
-        },
+        draw_rect_system,
     );
     _ = ecs.ADD_SYSTEM_WITH_FILTERS(
         world,
         "move player",
         ecs.OnUpdate,
         move_player_system,
-        &.{
-            .{ .id = ecs.id(Player) },
-        },
-    );
-    _ = ecs.ADD_SYSTEM_WITH_FILTERS(
-        world,
-        "draw player",
-        ecs.OnUpdate,
-        draw_player_system,
         &.{
             .{ .id = ecs.id(Player) },
         },
