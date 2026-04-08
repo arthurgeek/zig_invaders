@@ -57,19 +57,14 @@ fn draw_title_system(it: *ecs.iter_t) void {
     rl.drawText("Zig Invaders", 300, 250, 40, rl.Color.green);
 }
 
-fn init_player_system(it: *ecs.iter_t) void {
+fn init_system(it: *ecs.iter_t) void {
     const screen_width = @as(f32, @floatFromInt(rl.getScreenWidth()));
     const screen_height = @as(f32, @floatFromInt(rl.getScreenHeight()));
     const player_width = 50.0;
     const player_height = 30.0;
 
     const player = ecs.new_entity(it.world, "Player");
-    _ = ecs.set(
-        it.world,
-        player,
-        Size,
-        .{ .width = player_width, .height = player_height },
-    );
+    _ = ecs.set(it.world, player, Size, .{ .width = player_width, .height = player_height });
     _ = ecs.set(it.world, player, Position, .{
         .x = screen_width / 2 - player_width / 2,
         .y = screen_height - 60.0,
@@ -77,6 +72,35 @@ fn init_player_system(it: *ecs.iter_t) void {
     _ = ecs.set(it.world, player, Speed, .{ .speed = 5.0 });
     _ = ecs.set(it.world, player, Color, .{ .color = rl.Color.blue });
     ecs.add(it.world, player, Player);
+
+    const invader_width = 40.0;
+    const invader_height = 30.0;
+    const invader_rows = 5;
+    const invader_cols = 11;
+    const invader_start_x = 100.0;
+    const invader_start_y = 50.0;
+    const invader_spacing_x = 60.0;
+    const invader_spacing_y = 40.0;
+
+    for (0..invader_rows) |row| {
+        for (0..invader_cols) |col| {
+            const invader = ecs.new_id(it.world);
+            _ = ecs.set(it.world, invader, Position, .{
+                .x = invader_start_x + @as(f32, @floatFromInt(col)) * invader_spacing_x,
+                .y = invader_start_y + @as(f32, @floatFromInt(row)) * invader_spacing_y,
+            });
+            _ = ecs.set(it.world, invader, Size, .{ .width = invader_width, .height = invader_height });
+            _ = ecs.set(it.world, invader, Color, .{ .color = rl.Color.green });
+            ecs.add(it.world, invader, Invader);
+        }
+    }
+
+    _ = ecs.set(it.world, ecs.id(InvaderTimer), InvaderTimer, .{
+        .elapsed = 0.0,
+        .interval = 0.5,
+        .direction = 1.0,
+        .speed = 8.0,
+    });
 }
 
 fn move_player_system(positions: []Position, speeds: []const Speed, sizes: []const Size) void {
@@ -174,50 +198,6 @@ fn draw_bullets_system(
     }
 }
 
-fn init_invaders_system(it: *ecs.iter_t) void {
-    const invader_width = 40.0;
-    const invader_height = 30.0;
-    const invader_rows = 5;
-    const invader_cols = 11;
-    const invader_start_x = 100.0;
-    const invader_start_y = 50.0;
-    const invader_spacing_x = 60.0;
-    const invader_spacing_y = 40.0;
-
-    for (0..(invader_rows)) |row| {
-        for (0..invader_cols) |col| {
-            const invader = ecs.new_id(it.world);
-
-            _ = ecs.set(it.world, invader, Position, .{
-                .x = invader_start_x + @as(
-                    f32,
-                    @floatFromInt(col),
-                ) * invader_spacing_x,
-                .y = invader_start_y + @as(
-                    f32,
-                    @floatFromInt(row),
-                ) * invader_spacing_y,
-            });
-            _ = ecs.set(
-                it.world,
-                invader,
-                Size,
-                .{ .width = invader_width, .height = invader_height },
-            );
-            _ = ecs.set(it.world, invader, Color, .{ .color = rl.Color.green });
-            ecs.add(it.world, invader, Invader);
-        }
-    }
-}
-
-fn init_invaders_timer(it: *ecs.iter_t) void {
-    _ = ecs.set(
-        it.world,
-        ecs.id(InvaderTimer),
-        InvaderTimer,
-        .{ .elapsed = 0.0, .interval = 0.5, .direction = 1.0, .speed = 8.0 },
-    );
-}
 
 fn move_invaders_system(
     it: *ecs.iter_t,
@@ -294,21 +274,9 @@ pub fn main() void {
 
     _ = ecs.ADD_SYSTEM(
         world,
-        "init player",
+        "init",
         ecs.OnStart,
-        init_player_system,
-    );
-    _ = ecs.ADD_SYSTEM(
-        world,
-        "init invaders",
-        ecs.OnStart,
-        init_invaders_system,
-    );
-    _ = ecs.ADD_SYSTEM(
-        world,
-        "init invaders timer",
-        ecs.OnStart,
-        init_invaders_timer,
+        init_system,
     );
     _ = ecs.ADD_SYSTEM(
         world,
