@@ -3,6 +3,7 @@ const shared = @import("shared.zig");
 const invaders = @import("invaders.zig");
 const bullets = @import("bullets.zig");
 const player = @import("player.zig");
+const shields = @import("shields.zig");
 
 fn bullet_invader_collision_system(
     it: *ecs.iter_t,
@@ -52,6 +53,34 @@ fn invader_bullet_player_collision_system(
     }
 }
 
+fn bullet_shield_collision_system(
+    it: *ecs.iter_t,
+    bullet_positions: []const shared.Position,
+    bullet_sizes: []const shared.Size,
+) void {
+    for (it.entities(), bullet_positions, bullet_sizes) |bullet, b_pos, b_size| {
+        const b_rect = shared.Rectangle.from(b_pos, b_size);
+
+        var shield_it = ecs.each(it.world, shields.Shield);
+        while (ecs.each_next(&shield_it)) {
+            for (shield_it.entities()) |shield_entity| {
+                const s_pos = ecs.get(it.world, shield_entity, shared.Position).?;
+                const s_size = ecs.get(it.world, shield_entity, shared.Size).?;
+
+                if (b_rect.intersects(shared.Rectangle.from(s_pos.*, s_size.*))) {
+                    ecs.delete(it.world, bullet);
+                    const h = ecs.get_mut(it.world, shield_entity, shields.Health).?;
+                    h.value -= 1;
+                    if (h.value == 0) {
+                        ecs.delete(it.world, shield_entity);
+                    }
+                    break;
+                }
+            }
+        }
+    }
+}
+
 pub fn init(world: *ecs.world_t) void {
     _ = ecs.ADD_SYSTEM_WITH_FILTERS(world, "bullet invader collision", ecs.OnUpdate, bullet_invader_collision_system, &.{
         .{ .id = ecs.id(bullets.Bullet) },
@@ -60,6 +89,10 @@ pub fn init(world: *ecs.world_t) void {
     });
     _ = ecs.ADD_SYSTEM_WITH_FILTERS(world, "invader bullet player collision", ecs.OnUpdate, invader_bullet_player_collision_system, &.{
         .{ .id = ecs.id(bullets.InvaderBullet) },
+        shared.no_game_over_term(),
+    });
+    _ = ecs.ADD_SYSTEM_WITH_FILTERS(world, "bullet shield collision", ecs.OnUpdate, bullet_shield_collision_system, &.{
+        .{ .id = ecs.id(bullets.Bullet) },
         shared.no_game_over_term(),
     });
 }

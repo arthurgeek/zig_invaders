@@ -7,6 +7,7 @@ const invaders = @import("invaders.zig");
 const bullets = @import("bullets.zig");
 const render = @import("render.zig");
 const collision = @import("collision.zig");
+const shields = @import("shields.zig");
 
 fn restart_system(it: *ecs.iter_t) void {
     if (!rl.isKeyPressed(rl.KeyboardKey.enter)) return;
@@ -56,6 +57,7 @@ pub fn main() void {
     bullets.init(world);
     render.init(world);
     collision.init(world);
+    shields.init(world);
     _ = ecs.ADD_SYSTEM_WITH_FILTERS(world, "restart", ecs.OnUpdate, restart_system, &.{
         shared.game_over_term(),
     });
